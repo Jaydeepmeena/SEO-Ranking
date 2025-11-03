@@ -25,9 +25,12 @@ export const createJob = (jobData) => {
     fileName: jobData.fileName,
     status: jobData.status || 'PENDING',
     clientName: jobData.clientName || '',
+    googleSheetsUrl: jobData.googleSheetsUrl || null,
+    websiteUrl: jobData.websiteUrl || null,
     uploadTimestamp: new Date().toISOString(),
     completedTimestamp: null,
     downloadUrl: null,
+    sheetUrl: null, // Final result sheet URL from n8n
     errorMessage: null,
   };
   jobs.set(jobId, job);

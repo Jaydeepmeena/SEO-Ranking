@@ -2,41 +2,60 @@ import express from 'express';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
-import FormData from 'form-data';
-import { upload } from '../middleware/upload.js';
 import { createJob, getJob, updateJob, getAllJobs, generateJobId } from '../storage/jobStorage.js';
 
 const router = express.Router();
 
-// Upload file and create job
-router.post('/upload', upload.single('file'), async (req, res) => {
+// Submit URLs and create job
+router.post('/upload', async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+    // Get URLs from request body
+    const { googleSheetsUrl, websiteUrl } = req.body;
+
+    // Validation
+    if (!googleSheetsUrl || typeof googleSheetsUrl !== 'string' || googleSheetsUrl.trim() === '') {
+      return res.status(400).json({ error: 'Google Sheets URL is required' });
     }
 
-    // Get client name from request (multipart form data)
-    const clientName = req.body?.clientName || '';
+    if (!websiteUrl || typeof websiteUrl !== 'string' || websiteUrl.trim() === '') {
+      return res.status(400).json({ error: 'Client website URL is required' });
+    }
+
+    // Validate Google Sheets URL format
+    const trimmedSheetsUrl = googleSheetsUrl.trim();
+    if (!trimmedSheetsUrl.includes('docs.google.com/spreadsheets') && 
+        !trimmedSheetsUrl.includes('sheets.google.com')) {
+      return res.status(400).json({ error: 'Invalid Google Sheets URL. Must be a Google Sheets link.' });
+    }
+
+    // Validate website URL format
+    const trimmedWebsiteUrl = websiteUrl.trim();
+    try {
+      const urlObj = new URL(trimmedWebsiteUrl);
+      if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+        return res.status(400).json({ error: 'Website URL must start with http:// or https://' });
+      }
+    } catch (urlError) {
+      return res.status(400).json({ error: 'Invalid website URL format' });
+    }
 
     // Create job entry with generated jobId
     const jobId = generateJobId();
     const job = createJob({
       jobId,
-      fileName: req.file.originalname,
+      fileName: 'Google Sheets', // Store as Google Sheets since no file
       status: 'PENDING',
-      clientName: clientName
+      clientName: '', // No client name needed
+      googleSheetsUrl: trimmedSheetsUrl,
+      websiteUrl: trimmedWebsiteUrl
     });
     
-    // Send file to n8n webhook
-    const formData = new FormData();
-    const fileStream = fs.createReadStream(req.file.path);
-    
-    formData.append('file', fileStream, {
-      filename: req.file.originalname,
-      contentType: req.file.mimetype || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    });
-    formData.append('jobId', jobId);
-    formData.append('clientName', clientName);
+    // Send URLs to n8n webhook
+    const payload = {
+      jobId: jobId,
+      googleSheetsUrl: trimmedSheetsUrl,
+      websiteUrl: trimmedWebsiteUrl
+    };
 
     // Get webhook URL
     const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
@@ -59,28 +78,26 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       // Still create the job but mark it as PENDING (will not be processed)
       updateJob(jobId, { status: 'PENDING' });
       
-      // Clean up uploaded file
-      setTimeout(() => {
-        if (fs.existsSync(req.file.path)) {
-          fs.unlinkSync(req.file.path);
-        }
-      }, 5000);
-      
       return res.status(200).json({
-        message: 'File uploaded successfully. Note: N8N webhook not configured - job will not be processed.',
+        message: 'URLs submitted successfully. Note: N8N webhook not configured - job will not be processed.',
         job: {
           jobId: job.jobId,
           fileName: job.fileName,
           status: 'PENDING',
-          uploadTimestamp: job.uploadTimestamp
+          uploadTimestamp: job.uploadTimestamp,
+          clientName: job.clientName
         },
-        warning: 'N8N_WEBHOOK_URL is not configured. Please set it in your .env file to process files.'
+        warning: 'N8N_WEBHOOK_URL is not configured. Please set it in your .env file to process jobs.'
       });
     }
 
-    // Send to n8n and wait for response (which should contain the processed file or Google Sheets URL)
-    console.log('🚀 Attempting to trigger N8N file processing webhook:', n8nWebhookUrl);
-    console.log('📤 Sending file:', req.file.originalname, 'with jobId:', jobId, 'clientName:', clientName);
+    // Send to n8n and wait for JSON response containing Google Sheets URL
+    console.log('🚀 Attempting to trigger N8N workflow webhook:', n8nWebhookUrl);
+    console.log('📤 Sending URLs:', {
+      jobId,
+      googleSheetsUrl: trimmedSheetsUrl,
+      websiteUrl: trimmedWebsiteUrl
+    });
     
     // Update job status to PROCESSING immediately
     updateJob(jobId, { status: 'PROCESSING' });
@@ -99,7 +116,6 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       }
     }, timeoutDuration);
 
-    // Send to n8n and wait for JSON response containing Google Sheets URL
     /*
      * WEBHOOK RESPONSE FIELDS BEING EXTRACTED:
      * 
@@ -113,12 +129,10 @@ router.post('/upload', upload.single('file'), async (req, res) => {
      * If a Google Sheets URL is found, job is marked COMPLETED with sheetUrl stored.
      * Users can then click "View" button to open the sheet directly.
      */
-    axios.post(n8nWebhookUrl, formData, {
+    axios.post(n8nWebhookUrl, payload, {
       headers: {
-        ...formData.getHeaders(),
+        'Content-Type': 'application/json',
       },
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity,
       timeout: timeoutDuration, // 30 minute timeout
       responseType: 'json', // Only expecting JSON response with sheetUrl
     })
@@ -221,7 +235,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         });
       } else if (n8nError.response && n8nError.response.status !== 200) {
         // Mark as failed for actual errors (not timeouts)
-        let errorMessage = 'Failed to send file to processing workflow';
+        let errorMessage = 'Failed to send URLs to processing workflow';
         const status = n8nError.response.status;
         if (status === 404) {
           errorMessage = `N8N webhook returned 404 (Not Found)`;
@@ -245,17 +259,10 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       // User will see the failed status in the frontend
     });
 
-    // Clean up uploaded file after sending to n8n
-    setTimeout(() => {
-      if (fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
-      }
-    }, 5000);
-
     // Return success immediately - processing happens in background
     // Status will update automatically when n8n responds
     res.status(200).json({
-      message: 'File uploaded successfully and job created. Processing started.',
+      message: 'URLs submitted successfully and job created. Processing started.',
       job: {
         jobId: job.jobId,
         fileName: job.fileName,
@@ -265,8 +272,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Upload error:', error);
-    res.status(500).json({ error: 'Failed to upload file' });
+    console.error('Submit URLs error:', error);
+    res.status(500).json({ error: 'Failed to submit URLs: ' + (error.message || 'Unknown error') });
   }
 });
 
@@ -284,7 +291,9 @@ router.get('/status', async (req, res) => {
         uploadTimestamp: job.uploadTimestamp,
         completedTimestamp: job.completedTimestamp,
         errorMessage: job.errorMessage,
-        sheetUrl: job.sheetUrl || null // Include sheetUrl for viewing
+        sheetUrl: job.sheetUrl || null, // Final result sheet URL from n8n
+        googleSheetsUrl: job.googleSheetsUrl || null, // Input Google Sheets URL
+        websiteUrl: job.websiteUrl || null // Input website URL
       }))
     });
   } catch (error) {

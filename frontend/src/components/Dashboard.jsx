@@ -6,7 +6,7 @@ import {
   Typography,
   Paper,
 } from '@mui/material';
-import FileUpload from './FileUpload';
+import UrlInput from './UrlInput';
 import JobTable from './JobTable';
 
 const Dashboard = () => {
@@ -32,7 +32,7 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, [refreshTrigger]);
 
-  const handleFileUploaded = () => {
+  const handleUrlsSubmitted = () => {
     setRefreshTrigger((prev) => prev + 1);
   };
 
@@ -49,12 +49,12 @@ const Dashboard = () => {
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Paper elevation={3} sx={{ p: 4, mb: 4 }}>
           <Typography variant="h5" gutterBottom>
-            Upload File
+            Submit URLs
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Upload an XLSX file with Keyword and Location columns. The file will be processed and you can download the results when ready.
+            Enter your Google Sheets URL (containing keywords and locations) and your client website URL. The system will process the data and track SEO rankings.
           </Typography>
-          <FileUpload onUploadSuccess={handleFileUploaded} />
+          <UrlInput onSubmitSuccess={handleUrlsSubmitted} />
         </Paper>
 
         <Paper elevation={3} sx={{ p: 4 }}>
@@ -62,7 +62,7 @@ const Dashboard = () => {
             Your Jobs
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Track the status of your uploaded files. Status updates automatically every 5 seconds.
+            Track the status of your jobs. Status updates automatically every 5 seconds.
           </Typography>
           <JobTable jobs={jobs} />
         </Paper>

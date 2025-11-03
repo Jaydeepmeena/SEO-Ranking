@@ -79,6 +79,36 @@ export const getJobs = async () => {
   }
 };
 
+export const submitUrls = async (googleSheetsUrl, websiteUrl) => {
+  try {
+    console.log('📤 Submitting URLs to:', `${API_URL}/jobs/upload`);
+    const response = await axios.post(
+      `${API_URL}/jobs/upload`,
+      {
+        googleSheetsUrl: googleSheetsUrl.trim(),
+        websiteUrl: websiteUrl.trim(),
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000, // 30 seconds timeout
+      }
+    );
+    console.log('✅ URLs submitted successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Submit URLs error:', error);
+    if (error.code === 'ECONNABORTED') {
+      throw new Error('Request timeout - please check your connection and try again');
+    }
+    if (error.code === 'ERR_NETWORK' || error.message.includes('ERR_CONNECTION_REFUSED')) {
+      throw new Error(`Cannot connect to backend at ${API_URL}. Please check if the backend is running.`);
+    }
+    throw new Error(error.response?.data?.error || error.message || 'Failed to submit URLs');
+  }
+};
+
 export const downloadFile = async (jobId, fileName) => {
   try {
     const response = await axios.get(
