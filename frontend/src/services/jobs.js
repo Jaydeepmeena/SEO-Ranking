@@ -1,6 +1,25 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Get API URL from environment variable or use defaults
+const getApiUrl = () => {
+  // If VITE_API_URL is explicitly set (even if empty string), use it
+  if (import.meta.env.VITE_API_URL !== undefined) {
+    return import.meta.env.VITE_API_URL || '/api';
+  }
+  // Development: use localhost
+  if (import.meta.env.DEV) {
+    return 'http://localhost:5000/api';
+  }
+  // Production fallback: use relative path (won't work without backend on same domain)
+  return '/api';
+};
+
+const API_URL = getApiUrl();
+
+// Log API URL in development for debugging
+if (import.meta.env.DEV) {
+  console.log('🔗 API URL:', API_URL);
+}
 
 export const uploadFile = async (file, clientName) => {
   try {
