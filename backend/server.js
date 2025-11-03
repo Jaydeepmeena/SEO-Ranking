@@ -27,6 +27,19 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/jobs', jobRoutes);
 app.use('/api/n8n', n8nRoutes);
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'SEO Ranking API Server',
+    endpoints: {
+      health: '/health',
+      jobs: '/api/jobs',
+      n8n: '/api/n8n'
+    }
+  });
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
@@ -36,8 +49,18 @@ app.get('/health', (req, res) => {
 app.get('/debug/env', (req, res) => {
   res.json({
     PORT: process.env.PORT || 5000,
-    N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL || 'NOT SET',
+    N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL ? 'SET' : 'NOT SET',
     N8N_WEBHOOK_URL_length: process.env.N8N_WEBHOOK_URL ? process.env.N8N_WEBHOOK_URL.length : 0
+  });
+});
+
+// 404 handler for undefined routes
+app.use((req, res) => {
+  res.status(404).json({ 
+    error: 'Route not found',
+    path: req.path,
+    method: req.method,
+    availableRoutes: ['/', '/health', '/api/jobs', '/api/n8n', '/debug/env']
   });
 });
 
@@ -45,6 +68,13 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`📋 Environment variables loaded:`);
   console.log(`   PORT: ${process.env.PORT || 5000}`);
-  console.log(`   N8N_WEBHOOK_URL: ${process.env.N8N_WEBHOOK_URL || 'NOT SET'}`);
+  console.log(`   N8N_WEBHOOK_URL: ${process.env.N8N_WEBHOOK_URL ? 'SET' : 'NOT SET'}`);
+  console.log(`✅ API Routes available:`);
+  console.log(`   GET  /`);
+  console.log(`   GET  /health`);
+  console.log(`   GET  /debug/env`);
+  console.log(`   POST /api/jobs/upload`);
+  console.log(`   GET  /api/jobs/status`);
+  console.log(`   GET  /api/jobs/download/:jobId`);
 });
 
