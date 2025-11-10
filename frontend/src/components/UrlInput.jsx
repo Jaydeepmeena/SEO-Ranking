@@ -14,6 +14,7 @@ import { submitUrls } from '../services/jobs';
 const UrlInput = ({ onSubmitSuccess }) => {
   const [googleSheetsUrl, setGoogleSheetsUrl] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
+  const [gl, setGl] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -64,12 +65,14 @@ const UrlInput = ({ onSubmitSuccess }) => {
     try {
       await submitUrls(
         googleSheetsUrl.trim(),
-        websiteUrl.trim()
+        websiteUrl.trim(),
+        gl.trim()
       );
       setSuccess('URLs submitted successfully! Processing has started.');
       // Clear form
       setGoogleSheetsUrl('');
       setWebsiteUrl('');
+      setGl('');
       if (onSubmitSuccess) {
         onSubmitSuccess();
       }
@@ -107,6 +110,18 @@ const UrlInput = ({ onSubmitSuccess }) => {
           disabled={submitting}
           helperText="Enter the client website URL you want to track rankings for"
           error={websiteUrl.trim() !== '' && !validateWebsiteUrl(websiteUrl)}
+        />
+
+        <TextField
+          fullWidth
+          label="GL"
+          placeholder="Enter GL value"
+          value={gl}
+          onChange={(e) => setGl(e.target.value)}
+          margin="normal"
+          variant="outlined"
+          disabled={submitting}
+          helperText="Enter the GL value"
         />
 
         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>

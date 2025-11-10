@@ -79,7 +79,7 @@ export const getJobs = async () => {
   }
 };
 
-export const submitUrls = async (googleSheetsUrl, websiteUrl) => {
+export const submitUrls = async (googleSheetsUrl, websiteUrl, gl) => {
   try {
     console.log('📤 Submitting URLs to:', `${API_URL}/jobs/upload`);
     const response = await axios.post(
@@ -87,6 +87,7 @@ export const submitUrls = async (googleSheetsUrl, websiteUrl) => {
       {
         googleSheetsUrl: googleSheetsUrl.trim(),
         websiteUrl: websiteUrl.trim(),
+        gl: gl ? gl.trim() : '',
       },
       {
         headers: {

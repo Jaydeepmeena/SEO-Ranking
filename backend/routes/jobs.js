@@ -10,7 +10,7 @@ const router = express.Router();
 router.post('/upload', async (req, res) => {
   try {
     // Get URLs from request body
-    const { googleSheetsUrl, websiteUrl } = req.body;
+    const { googleSheetsUrl, websiteUrl, gl } = req.body;
 
     // Validation
     if (!googleSheetsUrl || typeof googleSheetsUrl !== 'string' || googleSheetsUrl.trim() === '') {
@@ -54,7 +54,8 @@ router.post('/upload', async (req, res) => {
     const payload = {
       jobId: jobId,
       googleSheetsUrl: trimmedSheetsUrl,
-      websiteUrl: trimmedWebsiteUrl
+      websiteUrl: trimmedWebsiteUrl,
+      gl: gl ? gl.trim() : ''
     };
 
     // Get webhook URL
@@ -96,7 +97,8 @@ router.post('/upload', async (req, res) => {
     console.log('📤 Sending URLs:', {
       jobId,
       googleSheetsUrl: trimmedSheetsUrl,
-      websiteUrl: trimmedWebsiteUrl
+      websiteUrl: trimmedWebsiteUrl,
+      gl: gl ? gl.trim() : ''
     });
     
     // Update job status to PROCESSING immediately
