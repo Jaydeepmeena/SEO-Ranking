@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: seo-ranking-backend
+    env: node
+    buildCommand: yarn install
+    startCommand: yarn start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Add your N8N_WEBHOOK_URL in Render dashboard
+      # - key: N8N_WEBHOOK_URL
+      #   value: your-webhook-url-here
+
