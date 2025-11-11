@@ -6,7 +6,15 @@ const getApiUrl = () => {
   
   // Explicitly check if environment variable exists and is not empty
   if (envUrl && envUrl.trim() !== '') {
-    return envUrl.trim();
+    let url = envUrl.trim();
+    // Ensure URL ends with /api if it doesn't already
+    // Remove trailing slash first
+    url = url.replace(/\/+$/, '');
+    // Append /api if not present
+    if (!url.endsWith('/api')) {
+      url = url + '/api';
+    }
+    return url;
   }
   
   // In development mode, use localhost
