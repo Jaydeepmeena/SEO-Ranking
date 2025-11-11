@@ -14,7 +14,7 @@ import { submitUrls } from '../services/jobs';
 const UrlInput = ({ onSubmitSuccess }) => {
   const [googleSheetsUrl, setGoogleSheetsUrl] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
-  const [gl, setGl] = useState('');
+  const [gl, setGl] = useState('IN');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -72,7 +72,7 @@ const UrlInput = ({ onSubmitSuccess }) => {
       // Clear form
       setGoogleSheetsUrl('');
       setWebsiteUrl('');
-      setGl('');
+      setGl('IN');
       if (onSubmitSuccess) {
         onSubmitSuccess();
       }
@@ -115,13 +115,13 @@ const UrlInput = ({ onSubmitSuccess }) => {
         <TextField
           fullWidth
           label="GL"
-          placeholder="Enter GL value"
+          placeholder="IN (default)"
           value={gl}
           onChange={(e) => setGl(e.target.value)}
           margin="normal"
           variant="outlined"
           disabled={submitting}
-          helperText="Enter the GL value"
+          helperText="Enter the GL value (default: IN)"
         />
 
         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
